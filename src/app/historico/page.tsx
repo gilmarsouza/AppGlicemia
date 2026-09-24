@@ -1,6 +1,9 @@
 import Link from "next/link";
 
+import { getAlertThresholds } from "@/lib/alert-thresholds";
+import { classifyReading } from "@/lib/glucose-alerts";
 import { createClient } from "@/lib/supabase/server";
+import { ReadingStatusBadge } from "@/components/reading-status-badge";
 import { formatDateTime } from "@/lib/format";
 import {
   glucoseContextLabels,
@@ -46,15 +49,24 @@ export default async function HistoricoPage({
   const days =
     PERIODS.find((p) => String(p.days) === periodo)?.days ?? DEFAULT_DAYS;
 
-  const { data, error } = await getReadingsSince(days);
+  const [{ data, error }, { thresholds }] = await Promise.all([
+    getReadingsSince(days),
+    getAlertThresholds(),
+  ]);
 
-  const readings = data ?? [];
+  const readings = (data ?? []).map((r) => ({
+    ...r,
+    status: classifyReading(r.value_mg_dl, r.context, thresholds).status,
+  }));
   const chartData: ChartPoint[] = readings.map((r) => ({
     time: new Date(r.measured_at).getTime(),
     value: r.value_mg_dl,
     context: r.context,
+    status: r.status,
   }));
   const newestFirst = [...readings].reverse();
+  const lowCount = readings.filter((r) => r.status === "baixa").length;
+  const highCount = readings.filter((r) => r.status === "alta").length;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-zinc-50 dark:bg-black">
@@ -112,7 +124,19 @@ export default async function HistoricoPage({
                     Glicemia (mg/dL) — últimos {days} dias
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex flex-col gap-3">
+                  <p className="text-base">
+                    {lowCount === 0 && highCount === 0
+                      ? "Nenhuma medição fora da faixa neste período."
+                      : [
+                          lowCount > 0 &&
+                            `${lowCount} ${lowCount === 1 ? "medição baixa" : "medições baixas"}`,
+                          highCount > 0 &&
+                            `${highCount} ${highCount === 1 ? "medição alta" : "medições altas"}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" e ") + " neste período."}
+                  </p>
                   <GlucoseChart data={chartData} />
                 </CardContent>
               </Card>
@@ -138,12 +162,15 @@ export default async function HistoricoPage({
                             {formatDateTime(r.measured_at)}
                           </span>
                         </div>
-                        <span className="text-2xl font-semibold tabular-nums">
-                          {r.value_mg_dl}
-                          <span className="ml-1 text-base font-normal text-muted-foreground">
-                            mg/dL
+                        <div className="flex items-center gap-3">
+                          <ReadingStatusBadge status={r.status} />
+                          <span className="text-2xl font-semibold tabular-nums">
+                            {r.value_mg_dl}
+                            <span className="ml-1 text-base font-normal text-muted-foreground">
+                              mg/dL
+                            </span>
                           </span>
-                        </span>
+                        </div>
                       </li>
                     ))}
                   </ul>

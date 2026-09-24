@@ -2,12 +2,19 @@
 
 import { redirect } from "next/navigation";
 
+import { getAlertThresholds } from "@/lib/alert-thresholds";
+import {
+  classifyReading,
+  type ReadingClassification,
+} from "@/lib/glucose-alerts";
 import { createClient } from "@/lib/supabase/server";
 import { glucoseReadingSchema } from "@/lib/validations/glucose-reading";
 
 export type CreateGlucoseReadingState = {
   error?: string;
   success?: boolean;
+  value?: number;
+  classification?: ReadingClassification;
 };
 
 export async function createGlucoseReading(
@@ -39,5 +46,15 @@ export async function createGlucoseReading(
     return { error: "Não foi possível salvar o registro. Tente novamente." };
   }
 
-  return { success: true };
+  const { thresholds } = await getAlertThresholds();
+
+  return {
+    success: true,
+    value: parsed.data.value_mg_dl,
+    classification: classifyReading(
+      parsed.data.value_mg_dl,
+      parsed.data.context,
+      thresholds,
+    ),
+  };
 }

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { createGlucoseReading } from "./actions";
+import { createGlucoseReading, type CreateGlucoseReadingState } from "./actions";
+import { statusStyles } from "@/components/reading-status-badge";
+import { cn } from "@/lib/utils";
 import {
   glucoseContextLabels,
   glucoseContextValues,
@@ -33,7 +35,9 @@ function nowForInput() {
 }
 
 export function EntryForm() {
-  const [savedCount, setSavedCount] = useState(0);
+  const [lastSaved, setLastSaved] = useState<CreateGlucoseReadingState | null>(
+    null,
+  );
   const {
     control,
     register,
@@ -54,11 +58,12 @@ export function EntryForm() {
     const result = await createGlucoseReading(values);
 
     if (result.error) {
+      setLastSaved(null);
       setError("root", { message: result.error });
       return;
     }
 
-    setSavedCount((count) => count + 1);
+    setLastSaved(result);
     reset({
       value_mg_dl: "" as unknown as GlucoseReadingFormInput["value_mg_dl"],
       context: "jejum",
@@ -139,7 +144,29 @@ export function EntryForm() {
         <p className="text-base text-destructive">{errors.root.message}</p>
       )}
 
-      {savedCount > 0 && (
+      {lastSaved?.classification &&
+        lastSaved.classification.status !== "normal" && (
+          <div
+            role="alert"
+            className={cn(
+              "rounded-lg border-2 px-4 py-3 text-lg",
+              statusStyles[lastSaved.classification.status].banner,
+            )}
+          >
+            <p className="font-semibold">
+              {lastSaved.classification.status === "baixa"
+                ? `Glicemia baixa: ${lastSaved.value} mg/dL (abaixo de ${lastSaved.classification.limit})`
+                : `Glicemia alta: ${lastSaved.value} mg/dL (acima de ${lastSaved.classification.limit})`}
+            </p>
+            <p className="mt-1 text-base">
+              {lastSaved.classification.status === "baixa"
+                ? "Siga o que foi combinado com seu médico para glicemia baixa. Se sentir tremor, suor frio, tontura ou confusão, peça ajuda."
+                : "Siga o que foi combinado com seu médico para glicemia alta."}
+            </p>
+          </div>
+        )}
+
+      {lastSaved && (
         <p className="text-base text-foreground" role="status">
           Registro salvo!{" "}
           <Link href="/historico" className="font-medium text-primary underline">

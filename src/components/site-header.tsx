@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { href: "/", label: "Registrar" },
   { href: "/historico", label: "Histórico" },
+  { href: "/alertas", label: "Alertas" },
 ];
 
 export function SiteHeader() {
