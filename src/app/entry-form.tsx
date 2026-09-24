@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -140,7 +141,10 @@ export function EntryForm() {
 
       {savedCount > 0 && (
         <p className="text-base text-foreground" role="status">
-          Registro salvo!
+          Registro salvo!{" "}
+          <Link href="/historico" className="font-medium text-primary underline">
+            Ver histórico
+          </Link>
         </p>
       )}
 

@@ -7,10 +7,9 @@ export const glucoseContextValues = [
   "antes_dormir",
 ] as const;
 
-export const glucoseContextLabels: Record<
-  (typeof glucoseContextValues)[number],
-  string
-> = {
+export type GlucoseContext = (typeof glucoseContextValues)[number];
+
+export const glucoseContextLabels: Record<GlucoseContext, string> = {
   jejum: "Jejum",
   antes_refeicao: "Antes da refeição",
   depois_refeicao: "Depois da refeição",
