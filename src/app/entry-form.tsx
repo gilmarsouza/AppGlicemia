@@ -2,16 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { createGlucoseReading, type CreateGlucoseReadingState } from "./actions";
+import { updateGlucoseReading } from "./historico/actions";
 import { statusStyles } from "@/components/reading-status-badge";
+import { toDateTimeLocalValue } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   glucoseContextLabels,
   glucoseContextValues,
   glucoseReadingSchema,
+  type GlucoseContext,
   type GlucoseReadingFormInput,
   type GlucoseReadingInput,
 } from "@/lib/validations/glucose-reading";
@@ -34,7 +38,15 @@ function nowForInput() {
   return local.toISOString().slice(0, 16);
 }
 
-export function EntryForm() {
+export type EditableReading = {
+  id: string;
+  value_mg_dl: number;
+  context: GlucoseContext;
+  measured_at: string;
+};
+
+export function EntryForm({ reading }: { reading?: EditableReading }) {
+  const router = useRouter();
   const [lastSaved, setLastSaved] = useState<CreateGlucoseReadingState | null>(
     null,
   );
@@ -47,14 +59,30 @@ export function EntryForm() {
     setError,
   } = useForm<GlucoseReadingFormInput, unknown, GlucoseReadingInput>({
     resolver: zodResolver(glucoseReadingSchema),
-    defaultValues: {
-      value_mg_dl: "" as unknown as GlucoseReadingFormInput["value_mg_dl"],
-      context: "jejum",
-      measured_at: nowForInput(),
-    },
+    defaultValues: reading
+      ? {
+          value_mg_dl: reading.value_mg_dl,
+          context: reading.context,
+          measured_at: toDateTimeLocalValue(reading.measured_at),
+        }
+      : {
+          value_mg_dl: "" as unknown as GlucoseReadingFormInput["value_mg_dl"],
+          context: "jejum",
+          measured_at: nowForInput(),
+        },
   });
 
   async function onSubmit(values: GlucoseReadingInput) {
+    if (reading) {
+      const result = await updateGlucoseReading(reading.id, values);
+      if (result.error) {
+        setError("root", { message: result.error });
+        return;
+      }
+      router.push("/historico");
+      return;
+    }
+
     const result = await createGlucoseReading(values);
 
     if (result.error) {
@@ -181,7 +209,7 @@ export function EntryForm() {
         disabled={isSubmitting}
         className="h-12 text-lg"
       >
-        {isSubmitting ? "Salvando..." : "Salvar"}
+        {isSubmitting ? "Salvando..." : reading ? "Salvar alterações" : "Salvar"}
       </Button>
     </form>
   );

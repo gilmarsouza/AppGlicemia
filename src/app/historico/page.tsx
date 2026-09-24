@@ -150,27 +150,32 @@ export default async function HistoricoPage({
                 <CardContent>
                   <ul className="divide-y">
                     {newestFirst.map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex items-center justify-between gap-4 py-3"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-lg">
-                            {glucoseContextLabels[r.context]}
-                          </span>
-                          <span className="text-base text-muted-foreground">
-                            {formatDateTime(r.measured_at)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <ReadingStatusBadge status={r.status} />
-                          <span className="text-2xl font-semibold tabular-nums">
-                            {r.value_mg_dl}
-                            <span className="ml-1 text-base font-normal text-muted-foreground">
-                              mg/dL
+                      <li key={r.id}>
+                        <Link
+                          href={`/historico/${r.id}/editar`}
+                          className="-mx-2 flex items-center justify-between gap-4 rounded-lg px-2 py-3 hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-lg">
+                              {glucoseContextLabels[r.context]}
                             </span>
-                          </span>
-                        </div>
+                            <span className="text-base text-muted-foreground">
+                              {formatDateTime(r.measured_at)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <ReadingStatusBadge status={r.status} />
+                            <span className="text-2xl font-semibold tabular-nums">
+                              {r.value_mg_dl}
+                              <span className="ml-1 text-base font-normal text-muted-foreground">
+                                mg/dL
+                              </span>
+                            </span>
+                            <span className="text-base font-medium text-primary underline">
+                              Editar
+                            </span>
+                          </div>
+                        </Link>
                       </li>
                     ))}
                   </ul>
